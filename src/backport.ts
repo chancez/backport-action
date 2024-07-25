@@ -18,6 +18,7 @@ type PRContent = {
 export type Config = {
   pwd: string;
   source_labels_pattern?: RegExp;
+  source_pr_number?: number;
   pull: {
     description: string;
     title: string;
@@ -103,7 +104,19 @@ export class Backport {
 
       if (repo === undefined) throw new Error("No repository defined!");
 
-      const pull_number = this.github.getPullNumber();
+      if (
+        this.config.source_pr_number !== undefined &&
+        this.github.getEventName() !== "workflow_dispatch"
+      ) {
+        throw new Error(
+          "source_pr_number can only be specified for workflow_dispatch events!",
+        );
+      }
+
+      const pull_number =
+        this.config.source_pr_number === undefined
+          ? this.github.getPullNumber()
+          : this.config.source_pr_number;
       const mainpr = await this.github.getPullRequest(pull_number);
 
       if (!(await this.github.isMerged(mainpr))) {
